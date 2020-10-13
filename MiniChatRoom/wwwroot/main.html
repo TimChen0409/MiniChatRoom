@@ -1,0 +1,113 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/css/bootstrap.min.css" />
+    <style>
+
+        #msgBox {
+            height: 600px;
+        }
+    </style>
+</head>
+<body>
+    <div id="ChatBlock">
+        <div class="container">
+            <div class="row">
+                <div class="col-12">
+                    <div id="msgBox" class="bg-secondary border border-warning mt-4">
+                        <div v-for="(item, index) in messages" v-bind:key="index + 'itemMessage'">
+                            <p><span class="badge badge-info">{{item.user}}: </span> <b>{{item.message}}</b><small>{{item.time}}</small></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <form>
+                <div class="bg-secondary d-flex pt-3" id="FormBlock">
+                    <div class="col-5 form-group d-flex">
+                        <label for="userName" class="col-sm-3 col-form-label">Your Name</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" name="Name" id="userName" v-model="userName" readonly/>
+                        </div>
+                    </div>
+                    <div class="col-5 form-group d-flex">
+                        <label for="userMessage" class="col-sm-3 col-form-label">Message</label>
+                        <div class="col-sm-9">
+                            <input type="text" class="form-control" name="Message" id="userMessage" v-model="userMessage" />
+                        </div>
+                    </div>
+                    <div class="col-2">
+                        <button class="btn btn-primary" v-on:click="submitMsg" type="button">Submit</button>
+                    </div>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="js/signalr/dist/browser/signalr.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.11/vue.min.js"></script>
+
+
+    <script>
+        const token = req.header('Authorization').replace('Bearer ', '')
+        console.log(token)
+
+        document.addEventListener("DOMContentLoaded", function (e) {
+            var app = new Vue({
+                el: "#ChatBlock",
+                data: {
+                    userName: "",
+                    userMessage: "",
+                    connection: "",
+                    messages: []
+                },
+                methods: {
+                    submitMsg: function () {
+                        if (this.userName && this.userMessage) {
+                            // Call hub methods from client
+                            this.connection
+                                .invoke("SendMessage", this.userName, this.userMessage)
+                                .catch(function (err) {
+                                    return console.error(err.toSting());
+                                });
+
+                            this.userMessage = "";
+                        }
+                    }
+                },
+                created: function () {
+                    // Connect to our hub
+                    this.connection = new signalR.HubConnectionBuilder()
+                        .withUrl("/chatHub")
+                        .configureLogging(signalR.LogLevel.Information)
+                        .build();
+                    this.connection.start().catch(function (err) {
+                        return console.error(err.toSting());
+                    });
+
+                    let webapiUrl = "/api/userName";
+                    axios.get(webapiUrl)
+                        .then((res) => {
+                            console.log(res.data);
+                        })
+                        .catch((error) => { console.error(error) })
+
+                },
+                mounted: function () {
+                    //Call client methods from hub
+                    var thisVue = this;
+                    thisVue.connection.start();
+                    thisVue.connection.on("ReceiveMessage", function (user, message) {
+                        thisVue.messages.push({ user, message });
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
