@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using MiniChatRoom.Data;
 
 namespace MiniChatRoom.Migrations
 {
     [DbContext(typeof(MiniChatRoomContext))]
-    partial class MiniChatRoomContextModelSnapshot : ModelSnapshot
+    [Migration("20201015172847_addCreateTime")]
+    partial class addCreateTime
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

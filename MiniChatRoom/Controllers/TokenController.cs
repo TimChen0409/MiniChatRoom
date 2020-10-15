@@ -10,6 +10,8 @@ using MiniChatRoom.Models;
 using MiniChatRoom.Data;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Identity;
+using Dapper;
+using Microsoft.Data.SqlClient;
 
 namespace MiniChatRoom.Controllers
 {
@@ -19,6 +21,7 @@ namespace MiniChatRoom.Controllers
     {
         private readonly JwtHelpers jwt;
         private readonly MiniChatRoomContext _context;
+        private readonly string connectionString="Server=(localdb)\\mssqllocaldb;Database=MiniChatRoomDB;Trusted_Connection=True;MultipleActiveResultSets=true";
 
         public TokenController(JwtHelpers jwt, MiniChatRoomContext context)
         {
@@ -33,12 +36,17 @@ namespace MiniChatRoom.Controllers
         {
             if (ValidateUser(login))
             {
-                var token= jwt.GenerateToken(login.Account);
+                var token = jwt.GenerateToken(login.Account);
+
+                //設定HttpOnly可有效降低 XSS 的影響並提升攻擊難度
+                //Response.Cookies.Append("Token",token,new CookieOptions { 
+                //    HttpOnly=true,
+                //});;
                 return Ok(new { Token = token, Message = "Success" });
             }
             else
             {
-                return Content("無此帳號");
+                return Content("無此帳號或密碼錯誤");
             }
         }
 
@@ -51,19 +59,13 @@ namespace MiniChatRoom.Controllers
             return false;
         }
 
-        //[HttpGet("~/claims")]
-        //public IActionResult GetClaims()
-        //{
-        //    return Ok(User.Claims.Select(p => new { p.Type, p.Value }));
-        //}
 
         [Authorize]
         [HttpGet]
-        [Route("~/api/userName")]
+        [Route("~/api/GetUserNickname")]
         public IActionResult GetUserNickname()
         {
-            int i = 0;
-            var nickName = _context.Member.Where(x => x.Account == User.Identity.Name).Select(x => x.Nickname);
+            var nickName = _context.Member.Where(x => x.Account == User.Identity.Name).Select(x => x.Nickname).FirstOrDefault();
 
             return Ok(nickName);
         }
@@ -71,18 +73,50 @@ namespace MiniChatRoom.Controllers
 
         [Authorize]
         [HttpGet]
-        [Route("~/api/userName")]
-        public IActionResult GetUserName()
+        [Route("~/api/GetUserID")]
+        public IActionResult GetUserID()
         {
-            int i = 0;
-            return Ok(User.Identity.Name);
+            var userID = _context.Member.Where(x => x.Account == User.Identity.Name).Select(x => x.Id).FirstOrDefault();
+
+            return Ok(userID);
         }
-        //[HttpGet("~/jwtid")]
-        //public IActionResult GetUniqueId()
-        //{
-        //    var jti = User.Claims.FirstOrDefault(p => p.Type == "jti");
-        //    return Ok(jti.Value);
-        //}
+
+        [Authorize]
+        [HttpGet]
+        [Route("~/api/GetChatRoomData")]
+        public IActionResult GetChatRoomData()
+        {
+            using (SqlConnection conn = new SqlConnection(connectionString))
+            {
+                string sql = @"select Nickname,MsgContent from Message
+INNER JOIN MEMBER ON MemberID=Member.Id
+WHERE Message.RoomID=1";
+
+                var result = conn.Query(sql).ToList();
+
+                return Ok(result);
+            }
+
+        }
+
+        [Authorize]
+        [HttpPost]
+        [Route("~/api/CreateMessage")]
+        public async Task<IActionResult> CreateMessage(int memberID, string msgContent)
+        {
+            Message msg = new Message()
+            {
+                MemberID = memberID,
+                RoomID = 1,
+                MsgContent = msgContent,
+                CreateTime = DateTime.Now
+            };
+
+            _context.Message.Add(msg);
+            await _context.SaveChangesAsync();
+
+            return Ok();
+        }
 
         public class LoginViewModel
         {

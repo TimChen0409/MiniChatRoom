@@ -8,6 +8,7 @@
 
         #msgBox {
             height: 600px;
+            overflow: auto;
         }
     </style>
 </head>
@@ -18,7 +19,7 @@
                 <div class="col-12">
                     <div id="msgBox" class="bg-secondary border border-warning mt-4">
                         <div v-for="(item, index) in messages" v-bind:key="index + 'itemMessage'">
-                            <p><span class="badge badge-info">{{item.user}}: </span> <b>{{item.message}}</b><small>{{item.time}}</small></p>
+                            <p class="h5"><span class="badge badge-info">{{item.user}}: </span> <b>{{item.message}}</b><small>{{item.time}}</small></p>
                         </div>
                     </div>
                 </div>
@@ -26,9 +27,9 @@
             <form>
                 <div class="bg-secondary d-flex pt-3" id="FormBlock">
                     <div class="col-5 form-group d-flex">
-                        <label for="userName" class="col-sm-3 col-form-label">Your Name</label>
+                        <label for="userName" class="col-sm-3 col-form-label">ID:{{userID}} Your Name</label>
                         <div class="col-sm-9">
-                            <input type="text" class="form-control" name="Name" id="userName" v-model="userName" readonly/>
+                            <input type="text" class="form-control" name="Name" id="userName" v-model="userName" readonly />
                         </div>
                     </div>
                     <div class="col-5 form-group d-flex">
@@ -46,6 +47,12 @@
         </div>
     </div>
 
+    <div class="row justify-content-center">
+        <div>
+            <a class="nav-link" href="index.html">回首頁</a>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -54,13 +61,23 @@
 
 
     <script>
-        const token = req.header('Authorization').replace('Bearer ', '')
-        console.log(token)
+        const token = sessionStorage.getItem('JwtToken');
+        const webapiUrl = "/api/GetUserNickname";
+        const webapiUrl2 = "/api/GetUserID";
+        const webapiUrl3 = "/api/CreateMessage";
+        const webapiUrl4 = "/api/GetChatRoomData";
+
+
+        if (token == null) {
+            document.location.href = "login.html";
+        }
+
 
         document.addEventListener("DOMContentLoaded", function (e) {
             var app = new Vue({
                 el: "#ChatBlock",
                 data: {
+                    userID: "",
                     userName: "",
                     userMessage: "",
                     connection: "",
@@ -76,6 +93,8 @@
                                     return console.error(err.toSting());
                                 });
 
+                            createMessageToDB(this.userID, this.userMessage);
+
                             this.userMessage = "";
                         }
                     }
@@ -90,10 +109,29 @@
                         return console.error(err.toSting());
                     });
 
-                    let webapiUrl = "/api/userName";
-                    axios.get(webapiUrl)
+
+                    axios.get(webapiUrl, { headers: { "Authorization": `Bearer ${token}` } })
                         .then((res) => {
-                            console.log(res.data);
+                            this.userName = res.data;
+                        })
+                        .catch((error) => { console.error(error) })
+
+                    axios.get(webapiUrl2, { headers: { "Authorization": `Bearer ${token}` } })
+                        .then((res) => {
+                            this.userID = res.data;
+                        })
+                        .catch((error) => { console.error(error) })
+
+                    axios.get(webapiUrl4, { headers: { "Authorization": `Bearer ${token}` } })
+                        .then((res) => {
+                            let data = res.data;
+                            for (var i = 0; i < res.data.length; i++) {
+                                let user = data[i].Nickname
+                                let message = data[i].MsgContent;
+                                //console.log(data, user, message);
+                                this.messages.push({ user, message });
+                            }
+
                         })
                         .catch((error) => { console.error(error) })
 
@@ -108,6 +146,24 @@
                 }
             });
         });
+
+
+        function createMessageToDB(memberID, content) {
+            //axios.get(webapiUrl3, params: { memberID: memberID, msgContent: content }, headers: { "Authorization": `Bearer ${token}` })
+            //    .then((res) => {
+
+            //    })
+            //    .catch((error) => { console.error(error) })
+            axios({
+                method: 'post',
+                url: webapiUrl3,
+                params: { 'memberID': memberID, 'msgContent': content },
+                headers: { 'Authorization': `Bearer ${token}` }
+            }).then((res) => {
+
+            })
+        }
+
     </script>
 </body>
 </html>

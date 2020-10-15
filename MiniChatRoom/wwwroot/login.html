@@ -11,7 +11,7 @@
         <div class="row justify-content-center">
             <div class="col-md-8">
                 <div class="card mt-5">
-                    <div class="card-header">燈入會員</div>
+                    <div class="card-header">登入會員</div>
                     <div class="card-body">
 
                         <form class="form-horizontal" method="post" action="#">
@@ -58,6 +58,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.11/vue.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
+        const token = sessionStorage.getItem('JwtToken');
+        if (token != null) {
+            document.location.href = "main.html";
+        }
+
+
         let webapiUrl = "/api/Token";
 
         let loginBtn = document.querySelector("#Login-button");
@@ -69,10 +75,11 @@
         function login() {
             axios.post(webapiUrl, { Account: account.value, Password: password.value })
                 .then((res) => {
-                    if (res.data == "無此帳號") {
+                    if (res.data == "無此帳號或密碼錯誤") {
                         alert(res.data);
                     }
                     else {
+                        sessionStorage.setItem("JwtToken", res.data.token);
                         alert("登入成功");
                         document.location.href = "main.html";
                     }

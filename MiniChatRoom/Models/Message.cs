@@ -20,5 +20,7 @@ namespace MiniChatRoom.Models
 
         [Required]
         public string MsgContent { get; set; }
+
+        public DateTime CreateTime { get; set; }
     }
 }

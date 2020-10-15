@@ -90,6 +90,8 @@ namespace MiniChatRoom
 
             app.UseHttpsRedirection();
 
+          
+
             app.UseRouting();
             app.UseStaticFiles();
 
