@@ -80,9 +80,13 @@ namespace MiniChatRoom.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateRegister([FromBody] Member member)
         {
+            if (member.Nickname == String.Empty || member.Account == String.Empty || member.Password == String.Empty)
+            {
+                return BadRequest();
+            }
+
             int checkAccount = _context.Member.Where(x => x.Account == member.Account).Count();
             int checkNickName = _context.Member.Where(x => x.Nickname == member.Nickname).Count();
-
             if (checkAccount > 0)
                 return Content("此帳號已重複");
             if (checkNickName > 0)
