@@ -18,8 +18,16 @@
             <div class="row">
                 <div class="col-12">
                     <div id="msgBox" class="bg-secondary border border-warning mt-4">
-                        <div v-for="(item, index) in messages" v-bind:key="index + 'itemMessage'">
-                            <p class="h5"><span class="badge badge-info">{{item.user}}: </span> <b>{{item.message}}</b><small>{{item.time}}</small></p>
+                        <div v-for="(item, index) in messages">
+                            <div class="d-flex">
+                                <div class="col-6 h5">
+                                    <span class="badge badge-info">{{item.user}}: </span>
+                                    <b>{{item.message}}</b>
+                                </div>
+                                <div class="col-5 h6 text-right">
+                                    <span>{{item.createTime}}</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -47,9 +55,9 @@
         </div>
     </div>
 
-    <div class="row justify-content-center">
+    <div class="row justify-content-center mt-2">
         <div>
-            <a class="nav-link" href="index.html">回首頁</a>
+            <a class="nav-link btn btn-info btn-sm" href="index.html">回首頁</a>
         </div>
     </div>
 
@@ -62,16 +70,14 @@
 
     <script>
         const token = sessionStorage.getItem('JwtToken');
-        const webapiUrl = "/api/GetUserNickname";
-        const webapiUrl2 = "/api/GetUserID";
-        const webapiUrl3 = "/api/CreateMessage";
-        const webapiUrl4 = "/api/GetChatRoomData";
+        const webapiUrl = "/api/GetUserInfo";
+        const webapiUrl2 = "/api/CreateMessage";
+        const webapiUrl3 = "/api/GetChatRoomData";
 
 
         if (token == null) {
             document.location.href = "login.html";
         }
-
 
         document.addEventListener("DOMContentLoaded", function (e) {
             var app = new Vue({
@@ -94,12 +100,14 @@
                                 });
 
                             createMessageToDB(this.userID, this.userMessage);
-
                             this.userMessage = "";
+                            
+                          
                         }
                     }
                 },
                 created: function () {
+
                     // Connect to our hub
                     this.connection = new signalR.HubConnectionBuilder()
                         .withUrl("/chatHub")
@@ -112,26 +120,22 @@
 
                     axios.get(webapiUrl, { headers: { "Authorization": `Bearer ${token}` } })
                         .then((res) => {
-                            this.userName = res.data;
+                            this.userName = res.data.nickname;
+                            this.userID = res.data.id;
                         })
                         .catch((error) => { console.error(error) })
 
-                    axios.get(webapiUrl2, { headers: { "Authorization": `Bearer ${token}` } })
-                        .then((res) => {
-                            this.userID = res.data;
-                        })
-                        .catch((error) => { console.error(error) })
 
-                    axios.get(webapiUrl4, { headers: { "Authorization": `Bearer ${token}` } })
+                    axios.get(webapiUrl3, { headers: { "Authorization": `Bearer ${token}` } })
                         .then((res) => {
                             let data = res.data;
                             for (var i = 0; i < res.data.length; i++) {
                                 let user = data[i].Nickname
                                 let message = data[i].MsgContent;
-                                //console.log(data, user, message);
-                                this.messages.push({ user, message });
-                            }
+                                let createTime = (data[i].CreateTime).substring(0, 19).replace("T", " ");
 
+                                this.messages.push({ user, message, createTime });
+                            }
                         })
                         .catch((error) => { console.error(error) })
 
@@ -140,8 +144,9 @@
                     //Call client methods from hub
                     var thisVue = this;
                     thisVue.connection.start();
-                    thisVue.connection.on("ReceiveMessage", function (user, message) {
-                        thisVue.messages.push({ user, message });
+                    thisVue.connection.on("ReceiveMessage", function (user, message, createTime) {
+                        console.log(user, message, createTime);
+                        thisVue.messages.push({ user, message, createTime });
                     });
                 }
             });
@@ -149,14 +154,9 @@
 
 
         function createMessageToDB(memberID, content) {
-            //axios.get(webapiUrl3, params: { memberID: memberID, msgContent: content }, headers: { "Authorization": `Bearer ${token}` })
-            //    .then((res) => {
-
-            //    })
-            //    .catch((error) => { console.error(error) })
             axios({
                 method: 'post',
-                url: webapiUrl3,
+                url: webapiUrl2,
                 params: { 'memberID': memberID, 'msgContent': content },
                 headers: { 'Authorization': `Bearer ${token}` }
             }).then((res) => {

@@ -12,6 +12,8 @@ using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Identity;
 using Dapper;
 using Microsoft.Data.SqlClient;
+using MiniChatRoom.ViewModels;
+using System.IO.MemoryMappedFiles;
 
 namespace MiniChatRoom.Controllers
 {
@@ -62,23 +64,13 @@ namespace MiniChatRoom.Controllers
 
         [Authorize]
         [HttpGet]
-        [Route("~/api/GetUserNickname")]
+        [Route("~/api/GetUserInfo")]
         public IActionResult GetUserNickname()
         {
-            var nickName = _context.Member.Where(x => x.Account == User.Identity.Name).Select(x => x.Nickname).FirstOrDefault();
+            Member member = _context.Member.Where(x => x.Account == User.Identity.Name).FirstOrDefault();
+            UserInfoViewModel vm = new UserInfoViewModel() { Id = member.Id, Nickname = member.Nickname };
 
-            return Ok(nickName);
-        }
-
-
-        [Authorize]
-        [HttpGet]
-        [Route("~/api/GetUserID")]
-        public IActionResult GetUserID()
-        {
-            var userID = _context.Member.Where(x => x.Account == User.Identity.Name).Select(x => x.Id).FirstOrDefault();
-
-            return Ok(userID);
+            return Ok(vm);
         }
 
         [Authorize]
@@ -88,7 +80,7 @@ namespace MiniChatRoom.Controllers
         {
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
-                string sql = @"select Nickname,MsgContent from Message
+                string sql = @"select Nickname,MsgContent,CreateTime from Message
 INNER JOIN MEMBER ON MemberID=Member.Id
 WHERE Message.RoomID=1";
 
@@ -96,7 +88,6 @@ WHERE Message.RoomID=1";
 
                 return Ok(result);
             }
-
         }
 
         [Authorize]
@@ -118,10 +109,5 @@ WHERE Message.RoomID=1";
             return Ok();
         }
 
-        public class LoginViewModel
-        {
-            public string Account { get; set; }
-            public string Password { get; set; }
-        }
     }
 }
